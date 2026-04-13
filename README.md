@@ -1,59 +1,137 @@
+```
+        ~
+       ~
+  _____|_____
+  \         /
+   \_______/     create-shipkit
+    \     /
+     \   /       AI-first dev kit.
+      \_/        You steer. AI ships.
+   ___| |___
+  |_________|
+~~~~~~~~~~~~~~~~~~~~
+```
+
 # create-shipkit
 
-AI-first project scaffolder for shipping apps fast.
+A dev kit for AI-first development. Scaffold apps, wire up services, and start shipping — with a workflow designed around the way AI actually writes code.
 
-Inspired by [create-t3-app](https://github.com/t3-oss/create-t3-app) and cookiecutter-style generators, but designed for a different workflow: **you steer, AI codes, GitHub is the backbone.**
+## What this is
 
-## Philosophy
+This isn't just a project generator. It's an opinionated setup for an **AI-first software development lifecycle**.
 
-- **AI does the coding.** Every generated project includes `AGENTS.md`, `CLAUDE.md`, and editor rules so AI agents know the stack, the structure, and the rules from day one.
-- **Ship from anywhere.** The full loop is: code on Mac/cloud, open PR, CI runs, preview deploys, review from your phone. GitHub is the shared state, not any one machine.
-- **Start minimal, add what you need.** Database, auth, E2E testing are all optional features you add with a flag. No wasted complexity.
-- **No silent failures.** Generated code fails loudly. No empty catch blocks, no defensive defaults that hide bugs. If something breaks, you see it.
-- **Platform-agnostic core.** Routes and business logic are portable. Platform-specific code (Cloudflare Workers, D1) lives in a thin adapter layer you can swap.
+The idea: you should be able to steer an AI agent from your phone, your laptop, your desktop, or a cloud agent — and every PR should produce a working preview you can test immediately. The repo is the state. The machine doesn't matter.
 
-## Quick Start
+**create-shipkit** handles the boring parts of that workflow:
+
+- **Scaffolding** — generates a project with the right structure, config, and dependencies so you're coding in minutes, not hours
+- **Agent instructions** — every project ships with `AGENTS.md`, `CLAUDE.md`, and editor rules so AI agents write code *your way*, consistently, across every project
+- **Service wiring** — creates your GitHub repo, Cloudflare project, database, and CI pipeline in one script
+- **Preview deploys** — every PR automatically deploys a preview you can open on your phone
+- **Testing for the AI era** — Playwright E2E tests that survive AI rewrites, not brittle unit tests coupled to implementation details
+
+## The workflow
+
+```
+You (phone/laptop/desktop)
+  |
+  | steer
+  v
+AI Agent (Claude Code, Cursor, Codex, any tool)
+  |
+  | codes + opens PR
+  v
+GitHub (CI runs, preview deploys)
+  |
+  | produces
+  v
+Preview URL (test on any device)
+  |
+  | you review
+  v
+Merge or request changes
+```
+
+Every project scaffolded by create-shipkit is wired for this loop from day one. You pick up wherever you left off because the repo and the PR are the state, not any one machine or session.
+
+## Quick start
 
 ```bash
 git clone https://github.com/bhushit/create-shipkit.git
-cd shipkit
+cd create-shipkit
 
-# Scaffold a minimal web app (Hono API + Vite/React)
+# Scaffold a minimal web app
 node scripts/generate.mjs web-only --name my-app
 
-# Scaffold with all features
+# Scaffold with database, auth, and E2E testing
 node scripts/generate.mjs web-only --name my-app --db --auth --e2e
+
+# Wire up GitHub repo, Cloudflare, CI
+cd my-app && ../scripts/bootstrap-services.sh --name my-app --type web
 ```
 
 ## Features (opt-in)
 
+Everything is optional. Start with a bare Hono + React app, cook in what you need.
+
 | Flag | What it adds |
 |---|---|
-| *(none)* | Hono API + Vite/React on Cloudflare Workers. Biome, TypeScript, Vitest. CI + preview deploys. |
-| `--db` | D1 database + Drizzle ORM. Schema, migrations, client. |
-| `--auth` | Better Auth (self-hosted). Email/password, social login, passkeys. Requires `--db`. |
-| `--e2e` | Playwright E2E testing. Smoke tests (CI on merge) + full suite (local). |
+| *(none)* | Hono API + Vite/React on Cloudflare Workers. TypeScript, Biome, CI, preview deploys. |
+| `--db` | Cloudflare D1 + Drizzle ORM. Schema, migrations, client. |
+| `--auth` | Better Auth (self-hosted, OSS). Email/password, social login, passkeys via plugins. Requires `--db`. |
+| `--e2e` | Playwright E2E testing. Smoke tests in CI on merge, full suite runs locally. |
 
-## Stack Defaults
+## Designed to not lock you in
 
-- **Language:** TypeScript everywhere
-- **API:** [Hono](https://hono.dev) (runs on Cloudflare Workers, Bun, Node)
-- **ORM:** [Drizzle](https://orm.drizzle.team) (edge-friendly, works with D1/Turso/Postgres)
-- **Database:** Cloudflare D1 (SQLite at the edge)
-- **Web:** Vite + React
-- **Auth:** [Better Auth](https://www.better-auth.com) (OSS, self-hosted, D1-backed)
-- **Hosting:** Cloudflare Workers + Pages
-- **CI:** GitHub Actions
-- **Linting:** Biome
-- **Testing:** Vitest (unit) + Playwright (E2E)
+The stack starts simple and cheap, but everything is portable:
 
-## What Gets Generated
+- **API routes** are pure [Hono](https://hono.dev) — no Cloudflare-specific code in your business logic. Swap to Bun, Node, or Vercel Edge without rewriting routes.
+- **Database** uses [Drizzle ORM](https://orm.drizzle.team) — start with Cloudflare D1 (free, edge SQLite), graduate to Turso or Postgres when you outgrow it. Change the adapter, keep your schema.
+- **Auth** uses [Better Auth](https://www.better-auth.com) — OSS, self-hosted, stores in your own database. No vendor, no per-user fees, no ceiling.
+- **Platform-specific code** lives in `src/platform/` — a thin adapter layer. Your routes, services, and business logic never import Cloudflare.
+
+You start on Cloudflare's free tier (which handles tens of thousands of users). When a project takes off, you swap the infra layer without rewriting the app.
+
+## What AI agents get
+
+Every generated project includes instructions that work with *any* AI coding tool:
+
+| File | Purpose |
+|---|---|
+| `AGENTS.md` | Tool-agnostic source of truth. Stack, structure, commands, rules. |
+| `CLAUDE.md` | Claude Code specifics. References AGENTS.md. |
+| `.claude/rules/` | Modular Claude Code rules. |
+| `.cursor/rules/` | Cursor IDE rules. |
+
+Rules baked into every project:
+- **No silent failures.** Never add empty catch blocks, swallow errors, or add defensive defaults that hide bugs. If something breaks, it breaks loudly.
+- **No backward-compat shims without asking.** This might be v0. Breaking changes are fine.
+- **Platform separation.** Routes are portable. Infra stays in `src/platform/`.
+- **No DB schema changes without a migration.** Generate it, review it, then apply it.
+- **Run lint + typecheck before claiming done.**
+
+These aren't generic best practices — they're guardrails learned from real AI coding sessions where agents silently broke things.
+
+## Testing strategy
+
+create-shipkit follows an **inverted testing pyramid** designed for AI-first development:
+
+| Layer | What | When it runs |
+|---|---|---|
+| TypeScript strict + Biome | Catches type errors and style issues | Every PR |
+| Playwright `@smoke` tests | Critical user paths | On merge to main |
+| Playwright full suite | All user flows | Locally, on demand |
+| Unit tests (Vitest) | Pure algorithmic logic only | When you write them |
+
+Why inverted? When AI writes and rewrites code frequently, E2E tests that verify *what the user sees* survive better than unit tests coupled to implementation details. AI writes the test code, you define the scenarios.
+
+## What gets generated
 
 ```
 my-app/
 ├── src/
-│   ├── app/              # Routes, handlers, services, schemas (platform-agnostic)
-│   ├── platform/         # Cloudflare adapter (thin, swappable)
+│   ├── app/              # Routes, handlers, services, schemas (pure Hono, portable)
+│   ├── platform/         # Cloudflare adapter (thin, the only infra-specific code)
 │   ├── db/               # Drizzle schema + migrations (--db)
 │   ├── auth/             # Better Auth config + middleware (--auth)
 │   ├── lib/              # Shared utilities
@@ -62,81 +140,39 @@ my-app/
 ├── e2e/                  # Playwright E2E tests (--e2e)
 ├── tests/                # Unit tests
 ├── .github/workflows/    # CI + preview deploy + smoke tests
-├── AGENTS.md             # AI agent instructions (tool-agnostic)
+├── AGENTS.md             # AI agent instructions
 ├── CLAUDE.md             # Claude Code instructions
 ├── .claude/rules/        # Claude Code rules
 ├── .cursor/rules/        # Cursor IDE rules
-├── wrangler.toml         # Cloudflare Workers config
-├── biome.json            # Linter/formatter config
-├── tsconfig.json
-├── vite.config.ts
-└── vitest.config.ts
+└── ...config files
 ```
 
-## Service Wiring
+## Prerequisites
 
-After scaffolding, wire up external services:
+Install and authenticate these CLIs on your dev machine:
 
 ```bash
-cd my-app
-./scripts/bootstrap-services.sh --name my-app --type web
+# Required
+gh auth login          # GitHub CLI
+wrangler login         # Cloudflare CLI
+npm i -g pnpm          # Package manager
+# Node 22+ via fnm or nvm
 ```
 
-This creates:
-- GitHub repo (private, with branch protection)
-- Cloudflare D1 database (if `--db`)
-- Cloudflare Pages project (for preview deploys)
-
-### Prerequisites
-
-You'll need these CLIs installed and authenticated:
-- `gh` (GitHub CLI)
-- `wrangler` (Cloudflare CLI)
-- `pnpm`
-- `node` (22+)
-
-### Secrets for CI
-
-Set these on your GitHub repo for preview deploys:
+For CI preview deploys, set these secrets on your GitHub repo:
 ```bash
 gh secret set CLOUDFLARE_ACCOUNT_ID
 gh secret set CLOUDFLARE_API_TOKEN
 ```
-
-## Testing Strategy
-
-Shipkit follows an **inverted testing pyramid** designed for AI-first development:
-
-1. **TypeScript strict + Biome** — catches most bugs, runs on every PR
-2. **Playwright smoke tests** (`@smoke` tag) — critical paths, runs on merge to main
-3. **Playwright full suite** — all user flows, runs locally on demand
-4. **Unit tests** — only for pure algorithmic logic, not generated by default
-
-Why: When AI writes and rewrites code frequently, E2E tests that verify user behavior survive better than unit tests coupled to implementation details.
-
-## AI Agent Instructions
-
-Every generated project includes instructions for AI coding agents:
-
-- **`AGENTS.md`** — tool-agnostic source of truth. Stack, structure, commands, rules. Works with any AI tool.
-- **`CLAUDE.md`** — Claude Code specifics. References AGENTS.md.
-- **`.claude/rules/`** — modular Claude Code rules.
-- **`.cursor/rules/`** — Cursor IDE rules.
-
-Key rules baked into every project:
-- No silent failures — errors must crash loudly
-- No backward-compat shims without asking
-- Platform separation — routes are portable, infra stays in `src/platform/`
-- No DB schema changes without reviewing the migration
-- Run lint + typecheck before claiming done
 
 ## Roadmap
 
 - [ ] `api-only` template (Hono worker, no frontend)
 - [ ] `mobile-only` template (Expo + React Native)
 - [ ] `monorepo-app` template (API + web + mobile + shared packages)
-- [ ] `--payments` feature flag (Stripe integration)
+- [ ] `--payments` feature flag (Stripe)
 - [ ] `--storage` feature flag (R2 file uploads)
+- [ ] `npx create-shipkit` — run without cloning
 
 ## License
 
