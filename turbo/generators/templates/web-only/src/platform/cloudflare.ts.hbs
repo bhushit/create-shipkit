@@ -1,0 +1,11 @@
+import { app } from "@/app/router";
+
+export type Env = {
+{{#if db}}
+  DB: D1Database;
+{{/if}}
+};
+
+export default {
+  fetch: app.fetch,
+};

@@ -1,0 +1,12 @@
+name = "{{name}}"
+main = "src/platform/cloudflare.ts"
+compatibility_date = "2025-04-01"
+compatibility_flags = ["nodejs_compat"]
+{{#if db}}
+
+# D1 Database - run bootstrap-services.sh to fill in database_id
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "{{name}}-db"
+# database_id = ""
+{{/if}}

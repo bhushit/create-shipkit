@@ -1,0 +1,95 @@
+# {{name}} - Agent Instructions
+
+## Purpose
+<!-- Describe what this app does -->
+
+## Stack
+- API: Hono on Cloudflare Workers
+{{#if db}}
+- ORM: Drizzle with D1
+{{/if}}
+{{#if auth}}
+- Auth: Better Auth (self-hosted, D1-backed)
+{{/if}}
+- Web: Vite + React
+- Language: TypeScript
+- Package manager: pnpm
+- Linting: Biome
+{{#if e2e}}
+- E2E Testing: Playwright
+{{/if}}
+- Unit Testing: Vitest (only for pure logic)
+
+## Commands
+- `pnpm dev` - start API dev server (wrangler)
+- `pnpm dev:web` - start web frontend dev server (vite)
+- `pnpm lint` - check formatting and lint
+- `pnpm lint:fix` - auto-fix lint issues
+- `pnpm typecheck` - TypeScript type checking
+- `pnpm test` - run unit tests (vitest)
+{{#if e2e}}
+- `pnpm test:e2e` - run full Playwright E2E suite
+- `pnpm test:e2e:smoke` - run smoke tests only (@smoke tag)
+- `pnpm test:e2e:ui` - run E2E tests with Playwright UI
+{{/if}}
+{{#if db}}
+- `pnpm db:generate` - generate DB migration
+- `pnpm db:migrate` - run DB migrations
+{{/if}}
+
+## Structure
+- `src/app/` - API routes, handlers, services, schemas (platform-agnostic, pure Hono)
+- `src/platform/` - Cloudflare adapter (thin layer, only place for Workers-specific code)
+{{#if db}}
+- `src/db/` - Drizzle schema and migrations
+{{/if}}
+{{#if auth}}
+- `src/auth/` - Better Auth config and Hono middleware
+{{/if}}
+- `src/lib/` - Shared utilities
+- `src/workers/` - Queue consumers, cron handlers
+- `src/web/` - Frontend (Vite + React)
+{{#if e2e}}
+- `e2e/` - Playwright E2E tests (smoke.spec.ts for critical paths)
+{{/if}}
+- `tests/` - Unit tests (only for pure algorithmic logic)
+
+## Architecture: Platform Separation
+Routes and business logic must be platform-agnostic:
+- `src/app/routes/` and `src/app/services/` — pure Hono, NO Cloudflare imports, no direct `env.DB` access
+- `src/platform/cloudflare.ts` — thin adapter, the ONLY place that touches Workers-specific APIs
+{{#if db}}
+- If a migration or query uses something specific to D1/SQLite that wouldn't work on Postgres, ask first
+{{/if}}
+
+## Testing Strategy
+- Do NOT write unit tests by default. Only for pure algorithmic/business logic with clear inputs/outputs.
+{{#if e2e}}
+- Write Playwright E2E tests for user-facing flows.
+- Tag critical path tests with `@smoke` in the test.describe name — these run in CI on merge.
+- Full E2E suite runs locally, not in CI.
+{{/if}}
+- When writing tests, define the scenarios clearly. Test what the user sees, not implementation details.
+
+## Rules
+
+### Code Quality
+- Run `pnpm lint && pnpm typecheck` before claiming anything is done
+- Use path aliases (`@/`) instead of deep relative imports
+- Keep the dev server startable with one command
+
+### No Silent Failures
+- NEVER add empty catch blocks or swallow errors
+- NEVER add defensive defaults that make code pass instead of failing when there's a bug
+- NEVER add backward-compatibility shims or fallbacks without asking — this may be v0, breaking changes are fine
+- Let errors propagate and crash loudly. If something fails, it should fail visibly.
+- If tempted to add a try/catch or default value to make code "work", ask whether the failure should be surfaced instead
+
+### Boundaries
+- Do not switch package managers or add major dependencies without asking
+- Keep PRs focused on one thing
+- Do not modify CI workflows or deploy configs without explicit approval
+{{#if db}}
+- Do not change DB schema without generating and reviewing a migration
+{{/if}}
+- When stuck, say so — do not silently guess and ship broken code

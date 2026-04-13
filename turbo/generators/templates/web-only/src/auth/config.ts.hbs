@@ -1,0 +1,46 @@
+import { betterAuth } from "better-auth";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { drizzle } from "drizzle-orm/d1";
+import * as schema from "@/db/schema";
+
+type AuthEnv = {
+  DB: D1Database;
+  BETTER_AUTH_URL: string;
+  BETTER_AUTH_SECRET: string;
+};
+
+export function createAuth(env: AuthEnv) {
+  const db = drizzle(env.DB, { schema });
+
+  return betterAuth({
+    baseURL: env.BETTER_AUTH_URL,
+    secret: env.BETTER_AUTH_SECRET,
+
+    database: drizzleAdapter(db, {
+      provider: "sqlite",
+      schema,
+    }),
+
+    emailAndPassword: { enabled: true },
+
+    // Uncomment and configure social providers as needed:
+    // socialProviders: {
+    //   google: {
+    //     clientId: env.GOOGLE_CLIENT_ID,
+    //     clientSecret: env.GOOGLE_CLIENT_SECRET,
+    //   },
+    //   github: {
+    //     clientId: env.GITHUB_CLIENT_ID,
+    //     clientSecret: env.GITHUB_CLIENT_SECRET,
+    //   },
+    // },
+
+    // Uncomment to add plugins:
+    // plugins: [
+    //   passkey(),
+    //   emailOTP({ sendVerificationOTP: async ({ email, otp }) => { ... } }),
+    // ],
+  });
+}
+
+export type Auth = ReturnType<typeof createAuth>;

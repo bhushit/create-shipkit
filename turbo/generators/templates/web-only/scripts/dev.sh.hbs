@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "Starting {{name}} dev servers..."
+echo "API: http://localhost:8787"
+echo "Web: http://localhost:5173"
+
+# Run both dev servers in parallel
+pnpm dev & pnpm dev:web &
+wait

@@ -1,0 +1,23 @@
+import { Hono } from "hono";
+import { createAuth, type Auth } from "./config";
+
+declare module "hono" {
+  interface ContextVariableMap {
+    auth: Auth;
+  }
+}
+
+export const authMiddleware = new Hono();
+
+// Create auth instance per request (D1 is only available via env bindings)
+authMiddleware.use("*", async (c, next) => {
+  const auth = createAuth(c.env as Parameters<typeof createAuth>[0]);
+  c.set("auth", auth);
+  await next();
+});
+
+// Route all /api/auth/* requests to Better Auth
+authMiddleware.on(["GET", "POST"], "/api/auth/*", async (c) => {
+  const auth = c.get("auth");
+  return auth.handler(c.req.raw);
+});

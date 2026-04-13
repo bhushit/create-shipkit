@@ -1,0 +1,35 @@
+name: Preview Deploy
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      deployments: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:web
+      - name: Deploy to Cloudflare Pages
+        id: deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: <% secrets.CLOUDFLARE_API_TOKEN %>
+          accountId: <% secrets.CLOUDFLARE_ACCOUNT_ID %>
+          command: pages deploy dist/web --project-name={{name}}-web --branch=<% github.head_ref %>
+      - name: Comment preview URL
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: preview
+          message: |
+            Preview: <% steps.deploy.outputs.deployment-url %>

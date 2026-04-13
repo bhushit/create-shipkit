@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "=== {{name}} status ==="
+echo ""
+echo "Node: $(node --version)"
+echo "pnpm: $(pnpm --version)"
+echo ""
+echo "--- Lint ---"
+pnpm lint 2>&1 | tail -3
+echo ""
+echo "--- Typecheck ---"
+pnpm typecheck 2>&1 | tail -3
+echo ""
+echo "--- Tests ---"
+pnpm test 2>&1 | tail -5

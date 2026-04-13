@@ -1,0 +1,12 @@
+{{#if auth}}
+import { authMiddleware } from "@/auth/middleware";
+{{/if}}
+import { healthRoute } from "@/app/routes/health";
+import { Hono } from "hono";
+
+export const app = new Hono();
+
+{{#if auth}}
+app.route("/", authMiddleware);
+{{/if}}
+app.route("/", healthRoute);
