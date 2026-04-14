@@ -1,0 +1,43 @@
+# Maestro E2E Tests
+
+Tests for {{name}}'s user flows.
+
+## Structure
+
+- `smoke.yaml` — critical path, runs on merge to main in CI (Android only)
+- `full/` — full suite, runs locally on demand
+
+## Running Locally
+
+```bash
+# Install Maestro once
+curl -Ls "https://get.maestro.mobile.dev" | bash
+
+# Run smoke tests (requires simulator/emulator/device running with app installed)
+maestro test .maestro/smoke.yaml
+
+# Run full suite
+maestro test .maestro/full/
+
+# Interactive studio (record + play)
+maestro studio
+```
+
+## Writing Tests
+
+Maestro flows are YAML. Keep them descriptive and behavior-focused:
+
+```yaml
+appId: ai.analogous.{{name}}
+name: User can sign in
+tags:
+  - auth
+---
+- launchApp
+- tapOn: "Sign in"
+- inputText: "user@example.com"
+- tapOn: "Continue"
+- assertVisible: "Check your email"
+```
+
+Tag critical flows with `smoke` to include them in CI.

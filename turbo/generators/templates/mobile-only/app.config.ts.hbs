@@ -1,0 +1,47 @@
+import type { ConfigContext, ExpoConfig } from "@expo/config";
+
+export default ({ config }: ConfigContext): ExpoConfig => ({
+  ...config,
+  name: "{{name}}",
+  slug: "{{name}}",
+  newArchEnabled: true,
+  version: "1.0.0",
+  orientation: "portrait",
+  icon: "./assets/images/icon.png",
+  scheme: "{{name}}",
+  userInterfaceStyle: "automatic",
+  runtimeVersion: "1.0.0",
+  assetBundlePatterns: ["**/*"],
+  ios: {
+    supportsTablet: false,
+    bundleIdentifier: "ai.analogous.{{name}}",
+    infoPlist: {
+      ITSAppUsesNonExemptEncryption: false,
+    },
+  },
+  android: {
+    package: "ai.analogous.{{name}}",
+    edgeToEdgeEnabled: true,
+  },
+  plugins: [
+    "expo-router",
+    "expo-font",
+    [
+      "expo-build-properties",
+      {
+        ios: {
+          deploymentTarget: "17.0",
+        },
+      },
+    ],
+  ],
+  experiments: {
+    typedRoutes: true,
+  },
+  extra: {
+    eas: {
+      projectId: "",
+    },
+  },
+  owner: "your-expo-username",
+});

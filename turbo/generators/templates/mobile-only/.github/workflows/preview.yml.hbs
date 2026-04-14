@@ -1,0 +1,44 @@
+name: Preview Update
+
+# Pushes a JS bundle via EAS Update for every PR.
+# Uses the "preview" channel. Reviewers scan the QR with a dev client build.
+#
+# Native changes (ios/, android/, app.config.ts, native deps) need an EAS Build
+# instead - see native-build.yml.
+
+on:
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - "ios/**"
+      - "android/**"
+      - "app.config.ts"
+      - "app.json"
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: <% secrets.EXPO_TOKEN %>
+      - run: pnpm install --frozen-lockfile
+      - name: Publish preview update
+        run: eas update --auto --branch=pr-<% github.event.pull_request.number %> --non-interactive
+      - name: Comment preview QR
+        uses: expo/expo-github-action/preview-comment@v8
+        with:
+          channel: preview
+          message: |
+            Preview update published to `pr-<% github.event.pull_request.number %>` branch.
+            Open your dev client and scan to load.

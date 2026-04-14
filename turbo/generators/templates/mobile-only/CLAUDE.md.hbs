@@ -1,0 +1,22 @@
+# {{name}} - Claude Code Instructions
+
+See AGENTS.md for project context, commands, and rules.
+
+## Quick Start
+```
+pnpm install
+pnpm dev                    # Start Expo dev server
+```
+
+## Shipping Changes
+
+- **JS/TS changes only** → PR → auto `eas update` → scan QR with dev client
+- **Native changes** (ios/, android/, app.config.ts, native deps) → PR → auto `eas build` → install fresh IPA
+
+When in doubt about whether a change is native or JS-only, ask before merging.
+
+{{#if e2e}}
+## Writing E2E Tests
+
+Use `maestro studio` to record flows locally, then refine the YAML. Tag critical paths with `smoke` to include in CI.
+{{/if}}

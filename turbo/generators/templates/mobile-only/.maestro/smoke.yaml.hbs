@@ -1,0 +1,9 @@
+appId: ai.analogous.{{name}}
+name: Smoke - App launches
+tags:
+  - smoke
+---
+- launchApp
+- assertVisible:
+    id: "app-title"
+- assertVisible: "Up and running."

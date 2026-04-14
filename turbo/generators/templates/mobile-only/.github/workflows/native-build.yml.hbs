@@ -1,0 +1,42 @@
+name: Native Build
+
+# Triggered when native code, plugins, or deps change.
+# Builds internal distribution IPA/APK on EAS, posts install link to PR.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "ios/**"
+      - "android/**"
+      - "app.config.ts"
+      - "app.json"
+      - "package.json"
+      - "pnpm-lock.yaml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: <% secrets.EXPO_TOKEN %>
+      - run: pnpm install --frozen-lockfile
+      - name: Build internal IPA
+        run: eas build --profile preview --platform ios --non-interactive --no-wait
+      - name: Comment on PR
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: native-build
+          message: |
+            Native build triggered on EAS. Track progress at https://expo.dev/accounts/your-expo-username/projects/{{name}}/builds

@@ -3,17 +3,15 @@
 // Scaffold a new project from templates with optional features
 //
 // Usage:
-//   node scripts/generate.mjs web-only --name my-app [--output /path] [--db] [--auth] [--e2e]
+//   node scripts/generate.mjs <generator> --name my-app [--output /path] [--feature1] [--feature2] ...
 //
-// Features (all optional):
-//   --db       Include D1 database + Drizzle ORM
-//   --auth     Include Better Auth (requires --db)
-//   --e2e      Include Playwright E2E testing with smoke/full tiers
+// Generators:
+//   web-only     Hono API + Vite/React on Cloudflare Workers
+//   mobile-only  Expo (React Native) app
 //
-// Examples:
-//   node scripts/generate.mjs web-only --name my-app                    # minimal: API + web only
-//   node scripts/generate.mjs web-only --name my-app --db               # with database
-//   node scripts/generate.mjs web-only --name my-app --db --auth --e2e  # full stack
+// Features:
+//   web-only:    --db, --auth (requires --db), --e2e (Playwright)
+//   mobile-only: --e2e (Maestro)
 
 import fs from "node:fs";
 import path from "node:path";
@@ -22,46 +20,52 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATES_DIR = path.resolve(__dirname, "../turbo/generators/templates");
 
-// --- Feature definitions ---
-// Each feature declares its deps, devDeps, scripts, and which template directories it owns.
-// Files inside feature-owned dirs are only included when that feature is enabled.
+// --- Generator + feature definitions ---
+// Features are per-generator because the same flag (e.g. --e2e) can mean
+// different things (Playwright for web, Maestro for mobile).
 
-const FEATURES = {
-  db: {
-    deps: {
-      "drizzle-orm": "^0.38.0",
+const GENERATORS = {
+  "web-only": {
+    features: {
+      db: {
+        deps: { "drizzle-orm": "^0.38.0" },
+        devDeps: { "drizzle-kit": "^0.30.0" },
+        scripts: {
+          "db:generate": "drizzle-kit generate",
+          "db:migrate": "drizzle-kit migrate",
+          "db:studio": "drizzle-kit studio",
+        },
+        ownedPaths: ["src/db", "drizzle.config.ts"],
+      },
+      auth: {
+        deps: { "better-auth": "^1.2.0" },
+        devDeps: {},
+        scripts: {},
+        ownedPaths: ["src/auth"],
+        requires: ["db"],
+      },
+      e2e: {
+        deps: {},
+        devDeps: { "@playwright/test": "^1.50.0" },
+        scripts: {
+          "test:e2e": "playwright test",
+          "test:e2e:smoke": "playwright test --grep @smoke",
+          "test:e2e:ui": "playwright test --ui",
+        },
+        ownedPaths: ["e2e", "playwright.config.ts"],
+      },
     },
-    devDeps: {
-      "drizzle-kit": "^0.30.0",
-    },
-    scripts: {
-      "db:generate": "drizzle-kit generate",
-      "db:migrate": "drizzle-kit migrate",
-      "db:studio": "drizzle-kit studio",
-    },
-    // Template paths owned by this feature (relative to template root)
-    ownedPaths: ["src/db", "drizzle.config.ts"],
   },
-  auth: {
-    deps: {
-      "better-auth": "^1.2.0",
+  "mobile-only": {
+    features: {
+      e2e: {
+        // Maestro is installed via shell, not npm. No deps/scripts.
+        deps: {},
+        devDeps: {},
+        scripts: {},
+        ownedPaths: [".maestro"],
+      },
     },
-    devDeps: {},
-    scripts: {},
-    ownedPaths: ["src/auth"],
-    requires: ["db"], // auth needs a database
-  },
-  e2e: {
-    deps: {},
-    devDeps: {
-      "@playwright/test": "^1.50.0",
-    },
-    scripts: {
-      "test:e2e": "playwright test",
-      "test:e2e:smoke": "playwright test --grep @smoke",
-      "test:e2e:ui": "playwright test --ui",
-    },
-    ownedPaths: ["e2e", "playwright.config.ts"],
   },
 };
 
@@ -72,15 +76,21 @@ const generator = args[0];
 const nameIdx = args.indexOf("--name");
 const outputIdx = args.indexOf("--output");
 
-if (!generator || nameIdx === -1 || !args[nameIdx + 1]) {
-  console.error(`Usage: node scripts/generate.mjs <generator> --name <app-name> [--output <path>] [--db] [--auth] [--e2e]`);
-  console.error(`\nGenerators: ${fs.readdirSync(TEMPLATES_DIR).join(", ")}`);
+if (!generator || !GENERATORS[generator] || nameIdx === -1 || !args[nameIdx + 1]) {
+  console.error(`Usage: node scripts/generate.mjs <generator> --name <app-name> [--output <path>] [feature flags]`);
+  console.error(`\nGenerators: ${Object.keys(GENERATORS).join(", ")}`);
+  for (const [gen, cfg] of Object.entries(GENERATORS)) {
+    const flags = Object.keys(cfg.features).map((f) => `--${f}`).join(" ");
+    console.error(`  ${gen}: ${flags}`);
+  }
   process.exit(1);
 }
 
 const name = args[nameIdx + 1];
 const outputDir = outputIdx !== -1 ? path.resolve(args[outputIdx + 1]) : path.resolve(`./${name}`);
 const templateDir = path.join(TEMPLATES_DIR, generator);
+
+const FEATURES = GENERATORS[generator].features;
 
 // Parse feature flags
 const enabledFeatures = new Set();
@@ -102,7 +112,7 @@ for (const feature of enabledFeatures) {
 }
 
 if (!fs.existsSync(templateDir)) {
-  console.error(`Generator "${generator}" not found. Available: ${fs.readdirSync(TEMPLATES_DIR).join(", ")}`);
+  console.error(`Generator "${generator}" template directory missing: ${templateDir}`);
   process.exit(1);
 }
 
@@ -192,20 +202,20 @@ function copyDir(src, dest, vars, relativeBase = "") {
   }
 
   // Remove empty directories
-  const entries = fs.readdirSync(dest);
-  if (entries.length === 0) {
-    fs.rmdirSync(dest);
+  if (fs.existsSync(dest)) {
+    const entries = fs.readdirSync(dest);
+    if (entries.length === 0) {
+      fs.rmdirSync(dest);
+    }
   }
 }
 
 // --- Build template variables ---
 
-const vars = {
-  name,
-  db: enabledFeatures.has("db"),
-  auth: enabledFeatures.has("auth"),
-  e2e: enabledFeatures.has("e2e"),
-};
+const vars = { name };
+for (const feature of Object.keys(FEATURES)) {
+  vars[feature] = enabledFeatures.has(feature);
+}
 
 // --- Generate ---
 
@@ -224,14 +234,14 @@ if (fs.existsSync(pkgPath)) {
 
   for (const feature of enabledFeatures) {
     const config = FEATURES[feature];
-    Object.assign(pkg.dependencies || {}, config.deps);
-    Object.assign(pkg.devDependencies || {}, config.devDeps);
-    Object.assign(pkg.scripts || {}, config.scripts);
+    Object.assign(pkg.dependencies || {}, config.deps || {});
+    Object.assign(pkg.devDependencies || {}, config.devDeps || {});
+    Object.assign(pkg.scripts || {}, config.scripts || {});
   }
 
   // Remove empty dep objects
-  if (Object.keys(pkg.dependencies).length === 0) delete pkg.dependencies;
-  if (Object.keys(pkg.devDependencies).length === 0) delete pkg.devDependencies;
+  if (pkg.dependencies && Object.keys(pkg.dependencies).length === 0) delete pkg.dependencies;
+  if (pkg.devDependencies && Object.keys(pkg.devDependencies).length === 0) delete pkg.devDependencies;
 
   fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
 }
@@ -239,7 +249,13 @@ if (fs.existsSync(pkgPath)) {
 console.log(`\nDone! Next steps:`);
 console.log(`  cd ${name}`);
 console.log(`  pnpm install`);
-console.log(`  pnpm dev`);
-if (enabledFeatures.has("e2e")) {
+if (generator === "mobile-only") {
+  console.log(`  # Update app.config.ts: set 'owner' to your Expo username`);
+  console.log(`  eas init       # create EAS project and link`);
+  console.log(`  pnpm dev       # start Expo dev server`);
+} else {
+  console.log(`  pnpm dev`);
+}
+if (enabledFeatures.has("e2e") && generator === "web-only") {
   console.log(`  npx playwright install    # first time only`);
 }
