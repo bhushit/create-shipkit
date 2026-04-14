@@ -34,12 +34,23 @@ jobs:
           token: <% secrets.EXPO_TOKEN %>
       - run: pnpm install --frozen-lockfile
       - name: Publish preview update
-        run: eas update --auto --branch=pr-<% github.event.pull_request.number %> --non-interactive
+        id: update
+        run: |
+          eas update --auto --branch=pr-<% github.event.pull_request.number %> --non-interactive
+          ACCOUNT=$(grep 'owner:' app.config.ts | sed 's/.*"\(.*\)".*/\1/')
+          echo "branch_url=https://expo.dev/accounts/$ACCOUNT/projects/{{name}}/branches/pr-<% github.event.pull_request.number %>" >> $GITHUB_OUTPUT
       - name: Comment preview link
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           header: preview
           message: |
-            📱 **Preview update published** to branch `pr-<% github.event.pull_request.number %>`
+            📱 **Preview update published** — branch `pr-<% github.event.pull_request.number %>`
 
-            Open your Expo dev client and load this branch, or scan a QR from the EAS dashboard.
+            **On your phone:**
+            1. Open your dev client build (needs `expo-updates` + `developmentClient: true` profile)
+            2. Scan the QR at: <% steps.update.outputs.branch_url %>
+
+            **First time?** Install the dev client:
+            ```
+            eas build --profile development --platform ios
+            ```
