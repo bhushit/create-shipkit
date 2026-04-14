@@ -35,10 +35,11 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Publish preview update
         run: eas update --auto --branch=pr-<% github.event.pull_request.number %> --non-interactive
-      - name: Comment preview QR
-        uses: expo/expo-github-action/preview-comment@v8
+      - name: Comment preview link
+        uses: marocchino/sticky-pull-request-comment@v2
         with:
-          channel: preview
+          header: preview
           message: |
-            Preview update published to `pr-<% github.event.pull_request.number %>` branch.
-            Open your dev client and scan to load.
+            📱 **Preview update published** to branch `pr-<% github.event.pull_request.number %>`
+
+            Open your Expo dev client and load this branch, or scan a QR from the EAS dashboard.

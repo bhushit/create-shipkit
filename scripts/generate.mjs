@@ -212,7 +212,11 @@ function copyDir(src, dest, vars, relativeBase = "") {
 
 // --- Build template variables ---
 
-const vars = { name };
+const vars = {
+  name,
+  // Android package names can't contain hyphens, must start with lowercase letter
+  nameAndroid: name.replace(/-/g, "_"),
+};
 for (const feature of Object.keys(FEATURES)) {
   vars[feature] = enabledFeatures.has(feature);
 }
